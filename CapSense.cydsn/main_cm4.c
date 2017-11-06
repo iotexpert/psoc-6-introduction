@@ -15,13 +15,13 @@
 #include "task.h"
 #include "queue.h"
 
-QueueHandle_t pwmQueueHandle;
+QueueHandle_t pwmQueueHandle; // used to get meesages to set PWM % (compare)
 
 // This task controls the PWM
+// Receives uint32 % from pwmQueue
 void pwmTask(void *arg)
 {
     (void)arg;
-    
     uint32_t msg;
     
     printf("Starting PWM Task\r\n");
@@ -72,6 +72,8 @@ void uartTask(void *arg)
     }
 }
 
+// capsenseTask
+// Read buttons and slider using CapSense and send messages to pwmQueue
 void capsenseTask(void *arg)
 {
     (void)arg;
@@ -122,8 +124,7 @@ void capsenseTask(void *arg)
         else
             taskYIELD();
             
-    }
-    
+    }    
 }
 int main(void)
 {

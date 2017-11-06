@@ -1,14 +1,4 @@
-/* ========================================
- *
- * Copyright YOUR COMPANY, THE YEAR
- * All Rights Reserved
- * UNPUBLISHED, LICENSED SOFTWARE.
- *
- * CONFIDENTIAL AND PROPRIETARY INFORMATION
- * WHICH IS THE PROPERTY OF your company.
- *
- * ========================================
-*/
+
 #include "project.h"
 #include <stdio.h>
 #include "FreeRTOS.h"
@@ -17,68 +7,40 @@
 
 QueueHandle_t pwmQueueHandle;
 QueueHandle_t bleQueueHandle;
-
-
 int connected=0;
+int notify=0;
 
-
+// This function is run inside BLE Task and sends notification if you are connected and notifications are on
 void notifyCapSense(uint8_t capValue)
 {    
-    
-    cy_ble_gatt_db_attr_handle_t cccdHandle;
-    cy_stc_ble_gatts_db_attr_val_info_t myWrite;
-    
-    if(!connected)
+    if(!(connected && notify))
         return;
     
-    memset(&cccdHandle,0,sizeof(cccdHandle));
-   
-    // If notifications are on... then send notification
-    cy_stc_ble_gatts_db_attr_val_info_t 	param;
-    uint8_t cccd[2];
-    param.connHandle = cy_ble_connHandle[0];
-    param.handleValuePair.attrHandle = CY_BLE_CAPSENSE_CAPSLIDER_CLIENT_CHARACTERISTIC_CONFIGURATION_DESC_HANDLE;
-    param.flags = CY_BLE_GATT_DB_LOCALLY_INITIATED;
-    param.offset = 0;  
-    param.handleValuePair.value.val = cccd;
-    param.handleValuePair.value.len = 2;
-    param.handleValuePair.value.actualLen = 2;
-   
-    Cy_BLE_GATTS_ReadAttributeValueCCCD(&param);
+    cy_stc_ble_gatts_handle_value_ntf_t v1;
+    v1.connHandle = cy_ble_connHandle[0];
+    v1.handleValPair.attrHandle = CY_BLE_CAPSENSE_CAPSLIDER_CHAR_HANDLE;
+    v1.handleValPair.value.len = 1;
+    v1.handleValPair.value.val = &capValue;
+    
+    Cy_BLE_GATTS_Notification(&v1);
         
-    if(param.handleValuePair.value.val[0] & 0x01) // if CCCD is on... notify.
-    {   cy_stc_ble_gatts_handle_value_ntf_t v1;
-        v1.connHandle = cy_ble_connHandle[0];
-        v1.handleValPair.attrHandle = CY_BLE_CAPSENSE_CAPSLIDER_CHAR_HANDLE;
-        v1.handleValPair.value.actualLen = 1;
-        v1.handleValPair.value.len = 1;
-        v1.handleValPair.value.val = &capValue;
-        
-        Cy_BLE_GATTS_Notification(&v1);
-        
-    }
 }
 
+// This event handler is called by BLE
 void customEventHandler(uint32_t event, void *eventParameter)
 {
      cy_stc_ble_gatts_write_cmd_req_param_t   *writeReqParameter;   
 
-    /* Take an action based on the current event */
     switch (event)
     {
-        /* This event is received when the BLE stack is Started */
         case CY_BLE_EVT_STACK_ON:
-            Cy_BLE_GAPP_StartAdvertisement(CY_BLE_ADVERTISING_FAST,
-                       CY_BLE_PERIPHERAL_CONFIGURATION_0_INDEX);
-        break;
-         
-        /* This event is received when device is disconnected */
-        case CY_BLE_EVT_GAP_DEVICE_DISCONNECTED:
-            Cy_BLE_GAPP_StartAdvertisement(CY_BLE_ADVERTISING_FAST, CY_BLE_PERIPHERAL_CONFIGURATION_0_INDEX);
+        case CY_BLE_EVT_GAP_DEVICE_DISCONNECTED: // Central disconnects
+            Cy_BLE_GAPP_StartAdvertisement(CY_BLE_ADVERTISING_FAST,CY_BLE_PERIPHERAL_CONFIGURATION_0_INDEX);
             connected = 0;
+            notify=0;
         break;
 
-        case CY_BLE_EVT_GATT_CONNECT_IND:
+        case CY_BLE_EVT_GATT_CONNECT_IND: // A Central connection is made
             connected = 1;
         break;
         
@@ -86,44 +48,24 @@ void customEventHandler(uint32_t event, void *eventParameter)
             writeReqParameter = (cy_stc_ble_gatts_write_cmd_req_param_t *)eventParameter;
 
             if(CY_BLE_CAPSENSE_CAPSLIDER_CLIENT_CHARACTERISTIC_CONFIGURATION_DESC_HANDLE ==  writeReqParameter->handleValPair.attrHandle)
-            {
-               printf("Notifications pn\r\n");
-                cy_stc_ble_gatts_db_attr_val_info_t myWrite;
-                myWrite.offset = 0;
-                myWrite.flags = CY_BLE_GATT_DB_PEER_INITIATED;
-                myWrite.connHandle = writeReqParameter->connHandle;
-                myWrite.handleValuePair = writeReqParameter->handleValPair;
-                Cy_BLE_GATTS_WriteAttributeValueCCCD(&myWrite);
-            }
-            
+                notify = writeReqParameter->handleValPair.value.val[0];
+              
             Cy_BLE_GATTS_WriteRsp(writeReqParameter->connHandle);
         break;
 
-        /* Do nothing for all other events */
-        default:
+        default: // Ignore all other events
         break;
     }
 }
 
-/*******************************************************************************
-* Function Name: bleTask
-********************************************************************************
-*
-* This function is the the main task for running BLE.  It is launched by the FreeRTOS
-* task scheduler in main_cm4.c
-*
-* \param 
-* void * arg is not used by this task
-* \return
-* void - this function never returns
-*
-*******************************************************************************/
+// bleTask handles the BLE connection (or not).. if the user connects and turns on
+// notifications then it sends out new values of the CapSense slider
 void bleTask(void *arg)
 {
-    (void)arg;
-   
+    (void)arg;   
     uint32_t msg;
     
+    printf("Starting BLE Task\r\n");
     bleQueueHandle = xQueueCreate(1,sizeof(uint32_t));
     Cy_BLE_Start(customEventHandler);
     
@@ -131,18 +73,17 @@ void bleTask(void *arg)
     {
         Cy_BLE_ProcessEvents();
         
+        // CapSense task will put CapSense slider values in the bleQueueHandle
         if(xQueueReceive(bleQueueHandle,&msg,0) == pdTRUE)
-        {
             notifyCapSense((uint8_t)msg);
-        }
-        
+       
         taskYIELD();
-        
     }
 }
 
 
 // This task controls the PWM
+// The when integers 0-100 are place in the queue "pwmQueueHandle", the task changes the PWM compare
 void pwmTask(void *arg)
 {
     (void)arg;
@@ -196,13 +137,12 @@ void uartTask(void *arg)
 		taskYIELD();
     }
 }
-
+// This task reads the CapSense Slider and Button and sends message to BLE and PWM tasks
 void capsenseTask(void *arg)
 {
     (void)arg;
     
     uint32_t msg;
-    
     int b0prev=0;
     int b1prev=0;
     int b0current=0;
@@ -210,7 +150,6 @@ void capsenseTask(void *arg)
     int sliderPos;
     
     printf("Starting CapSense Task\r\n");
-    
     CapSense_Start();
     CapSense_ScanAllWidgets();
         
@@ -223,8 +162,8 @@ void capsenseTask(void *arg)
             if(sliderPos<0xFFFF) // If they are touching the slider then send the %
             {
                 msg = sliderPos;
-                xQueueSend(pwmQueueHandle,&msg,0);
-                xQueueSend(bleQueueHandle,&msg,0);
+                xQueueSend(pwmQueueHandle,&msg,0); // Send message to PWM - change brightness
+                xQueueSend(bleQueueHandle,&msg,0); // Send message to BLE
             }
             b0current = CapSense_IsWidgetActive(CapSense_BUTTON0_WDGT_ID);
             b1current = CapSense_IsWidgetActive(CapSense_BUTTON1_WDGT_ID); 
@@ -247,15 +186,11 @@ void capsenseTask(void *arg)
         }
         else
             taskYIELD();
-            
     }
-    
 }
 int main(void)
 {
     __enable_irq(); /* Enable global interrupts. */
-
-    /* Place your initialization/startup code here (e.g. MyInst_Start()) */
 
     PWM_1_Start();
     UART_1_Start();
@@ -269,8 +204,5 @@ int main(void)
     xTaskCreate( capsenseTask, "CapSense Task",2048*2,0,3,0);
     xTaskCreate( bleTask, "BLE Task",4096,0,3,0);
     vTaskStartScheduler();  // Will never return
-    
-    for(;;) // It will never get here
-    {
-    }
+    while(1); // Eliminate compiler warning
 }

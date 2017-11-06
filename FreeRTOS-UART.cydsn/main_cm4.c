@@ -19,23 +19,27 @@ void uartTask(void *arg)
 {
     (void)arg;
     char c;
-    setvbuf(stdin,0,_IONBF,0);
+    setvbuf(stdin,0,_IONBF,0); // Turn off buffering
     while(1)
     {
-        c = getchar();
-        switch(c)
+        if(Cy_SCB_UART_GetNumInRxFifo(UART_1_HW)) // if there is a keypress
         {
-            case 's':
-                printf("Stopped PWM\r\n");
-                Cy_TCPWM_PWM_Disable(PWM_1_HW,PWM_1_CNT_NUM);
-                
-            break;
-            case 'S':
-                printf("Started PWM\r\n");
-                Cy_TCPWM_PWM_Enable(PWM_1_HW,PWM_1_CNT_NUM);
-                Cy_TCPWM_TriggerStart(PWM_1_HW, PWM_1_CNT_MASK);
-            break;
+            c = getchar();
+            switch(c)
+            {
+                case 's':
+                    printf("Stopped PWM\r\n");
+                    Cy_TCPWM_PWM_Disable(PWM_1_HW,PWM_1_CNT_NUM);
+                break;
+                case 'S':
+                    printf("Started PWM\r\n");
+                    Cy_TCPWM_PWM_Enable(PWM_1_HW,PWM_1_CNT_NUM);
+                    Cy_TCPWM_TriggerStart(PWM_1_HW, PWM_1_CNT_MASK);
+                break;
+            }
         }
+        else
+            taskYIELD();
     }
 }
 

@@ -8,7 +8,6 @@
 <files />
 <projects>
 <v>.\MyFirstDesign.cydsn\MyFirstDesign.cyprj</v>
-<v>.\PrePopulatedSchematic.cydsn\PrePopulatedSchematic.cyprj</v>
 <v>.\FreeRTOS-UART.cydsn\FreeRTOS-UART.cyprj</v>
 <v>.\CapSense.cydsn\CapSense.cyprj</v>
 <v>.\CapSense_BLE.cydsn\CapSense_BLE.cyprj</v>

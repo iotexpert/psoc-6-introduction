@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-16"?>
+<CyProfileTreeItem xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xsi:type="CyService" ID="22" DisplayName="CapSense" Name="Custom Service" Type="org.bluetooth.service.custom" UUID="0003CAB500001000800000805F9B0131">
+  <CyCharacteristic ID="23" DisplayName="CapSlider" Name="Custom Characteristic" Type="org.bluetooth.characteristic.custom" UUID="0003CAA200001000800000805F9B0131">
+    <CyDescriptor ID="28" DisplayName="Client Characteristic Configuration" Name="Client Characteristic Configuration" Type="org.bluetooth.descriptor.gatt.client_characteristic_configuration" UUID="2902">
+      <Field Name="Properties">
+        <DataFormat>16bit</DataFormat>
+        <ByteLength>2</ByteLength>
+        <Range>
+          <IsDeclared>true</IsDeclared>
+          <Minimum>0</Minimum>
+          <Maximum>3</Maximum>
+        </Range>
+        <ValueType>BITFIELD</ValueType>
+        <Bit>
+          <Index>0</Index>
+          <Size>1</Size>
+          <Value>0</Value>
+          <Enumerations>
+            <Enumeration key="0" value="Notifications disabled" />
+            <Enumeration key="1" value="Notifications enabled" />
+          </Enumerations>
+        </Bit>
+        <Bit>
+          <Index>1</Index>
+          <Size>1</Size>
+          <Value>0</Value>
+          <Enumerations>
+            <Enumeration key="0" value="Indications disabled" />
+            <Enumeration key="1" value="Indications enabled" />
+          </Enumerations>
+        </Bit>
+        <ArrayValue />
+      </Field>
+      <Properties>
+        <Property Type="READ" Present="true" Mandatory="false" />
+        <Property Type="WRITE" Present="true" Mandatory="false" />
+      </Properties>
+      <Permission>
+        <AccessPermission>READ_WRITE</AccessPermission>
+      </Permission>
+    </CyDescriptor>
+    <CyDescriptor ID="29" DisplayName="Characteristic User Description" Name="Characteristic User Description" Type="org.bluetooth.descriptor.gatt.characteristic_user_description" UUID="2901">
+      <Field Name="User Description">
+        <DataFormat>utf8s</DataFormat>
+        <ByteLength>15</ByteLength>
+        <ValueType>BASIC</ValueType>
+        <GeneralValue>CapSense Slider</GeneralValue>
+        <ArrayValue />
+      </Field>
+      <Properties>
+        <Property Type="READ" Present="true" Mandatory="false" />
+        <Property Type="WRITE" Present="false" Mandatory="false" />
+      </Properties>
+      <Permission />
+    </CyDescriptor>
+    <Field Name="New field">
+      <DataFormat>uint8</DataFormat>
+      <ByteLength>1</ByteLength>
+      <ValueType>BASIC</ValueType>
+      <ArrayValue />
+    </Field>
+    <Properties>
+      <Property Type="BROADCAST" Present="false" Mandatory="false" />
+      <Property Type="READ" Present="false" Mandatory="false" />
+      <Property Type="WRITE" Present="false" Mandatory="false" />
+      <Property Type="WRITE_WITHOUT_RESPONSE" Present="false" Mandatory="false" />
+      <Property Type="NOTIFY" Present="true" Mandatory="false" />
+      <Property Type="INDICATE" Present="false" Mandatory="false" />
+      <Property Type="AUTHENTICATED_SIGNED_WRITES" Present="false" Mandatory="false" />
+      <Property Type="RELIABLE_WRITE" Present="false" Mandatory="false" />
+      <Property Type="WRITABLE_AUXILIARIES" Present="false" Mandatory="false" />
+    </Properties>
+    <Permission />
+  </CyCharacteristic>
+  <Declaration>Primary</Declaration>
+  <IncludedServices />
+</CyProfileTreeItem>
