@@ -8,6 +8,10 @@
 ;*
 ;* Linker file for the ARMCC.
 ;*
+;* The main purpose of the linker script is to describe how the sections in the
+;* input files should be mapped into the output file, and to control the memory
+;* layout of the output file.
+;*
 ;* \note The entry point location is fixed and starts at 0x10000000. The valid
 ;* application image should be placed there.
 ;*
@@ -28,15 +32,31 @@
 ;* the software package with which this file was provided.
 ;******************************************************************************/
 
+; The defines below describe the location and size of blocks of memory in the target.
+; Use these defines to specify the memory regions available for allocation.
 
+; The following defines control RAM and flash memory allocation for the CM0+ core.
+; You can change the memory allocation by editing the RAM and Flash defines.
+; Your changes must be aligned with the corresponding defines for the CM4 core in 'xx_cm4_dual.scat',
+; where 'xx' is the device group; for example, 'cy8c6xx7_cm4_dual.scat'.
+; RAM
+; RAM
+#define RAM_START               0x08000000
+#define RAM_SIZE                0x00024000
+; Flash
 ; Flash
 #define FLASH_START             0x10000000
 #define FLASH_SIZE              0x00080000
 
-; Working flash
-#define WFLASH_START            0x14000000
-#define WFLASH_SIZE             0x8000
+; The following defines describe a 32K flash region used for EEPROM emulation. 
+; This region can also be used as the general purpose flash.
+; You can assign sections to this memory region for only one of the cores.
+; Note some middleware (e.g. BLE, Emulated EEPROM) can place their data into this memory region.
+; Therefore, repurposing this memory region will prevent such middleware from operation.
+#define EM_EEPROM_START         0x14000000
+#define EM_EEPROM_SIZE          0x8000
 
+; The following defines describe device specific memory regions and must not be changed.
 ; Supervisory flash: User data
 #define SFLASH_USER_DATA_START  0x16000800
 #define SFLASH_USER_DATA_SIZE   0x00000800
@@ -51,7 +71,11 @@
 
 ; Supervisory flash: Table of Content # 2
 #define SFLASH_TOC_2_START      0x16007C00
-#define SFLASH_TOC_2_SIZE       0x00000400
+#define SFLASH_TOC_2_SIZE       0x00000200
+
+; Supervisory flash: Table of Content # 2 Copy
+#define SFLASH_RTOC_2_START     0x16007E00
+#define SFLASH_RTOC_2_SIZE      0x00000200
 
 ; External memory
 #define XIP_START               0x18000000
@@ -60,10 +84,6 @@
 ; eFuse
 #define EFUSE_START             0x90700000
 #define EFUSE_SIZE              0x100000
-
-; RAM
-#define RAM_START               0x08000000
-#define RAM_SIZE                0x00024000
 
 
 LR_FLASH FLASH_START FLASH_SIZE
@@ -91,6 +111,7 @@ LR_FLASH FLASH_START FLASH_SIZE
 
     ER_RAM_DATA +0
     {
+        * (.cy_ramfunc)
         .ANY (+RW, +ZI)
     }
 
@@ -103,12 +124,12 @@ LR_FLASH FLASH_START FLASH_SIZE
 }
 
 
-; Work Flash
-LR_WFLASH WFLASH_START WFLASH_SIZE
+; Emulated EEPROM Flash area
+LR_EM_EEPROM EM_EEPROM_START EM_EEPROM_SIZE
 {
-    .cy_wflash +0
+    .cy_em_eeprom +0
     {
-        * (.cy_wflash)
+        * (.cy_em_eeprom)
     }
 }
 
@@ -147,6 +168,16 @@ LR_SFLASH_TOC_2 SFLASH_TOC_2_START SFLASH_TOC_2_SIZE
         * (.cy_toc_part2)
     }
 }
+
+; Supervisory flash: Table of Content # 2 Copy
+LR_SFLASH_RTOC_2 SFLASH_RTOC_2_START SFLASH_RTOC_2_SIZE
+{
+    .cy_rtoc_part2 +0
+    {
+        * (.cy_rtoc_part2)
+    }
+}
+
 
 ; Places the code in the Execute in Place (XIP) section. See the smif driver documentation for details.
 LR_EROM XIP_START XIP_SIZE

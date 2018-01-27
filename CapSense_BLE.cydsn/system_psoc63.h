@@ -24,9 +24,7 @@
 * - See \ref group_system_config_device_initialization for the:
 *   * \ref group_system_config_dual_core_device_initialization
 *   * \ref group_system_config_single_core_device_initialization
-* - See \ref group_system_config_device_memory_definition for the:
-*   * \ref group_system_config_device_memory_dual_core_definition
-*   * \ref group_system_config_device_memory_single_core_definition
+* - \ref group_system_config_device_memory_definition
 * - \ref group_system_config_heap_stack_config
 * - \ref group_system_config_merge_apps
 * - Default interrupt handlers definition
@@ -36,99 +34,126 @@
 * \section group_system_config_configuration Configuration Considerations
 *
 * \subsection group_system_config_device_memory_definition Device Memory Definition
-* The physical flash and RAM memory is shared between the CPU cores. The flash
-* and RAM allocation for each
-* CPU is defined by the linker scripts.
+* The flash and RAM allocation for each CPU is defined by the linker scripts.
+* For dual-core devices, the physical flash and RAM memory is shared between the CPU cores.
+* 2 KB of RAM (allocated at the end of RAM) are reserved for system use.
+* For Single-Core devices the system reserves additional 80 bytes of RAM.
+* Using the reserved memory area for other purposes will lead to unexpected behavior.
 *
-* \subsubsection group_system_config_device_memory_dual_core_definition Dual-Core Devices
-* By default, the flash and RAM memory is equally divided between two cores.
-* This proportion can be changed by editing
-* the linker configuration files.
+* \note The linker files provided with the PDL are generic and handle all common
+* use cases. Your project may not use every section defined in the linker files.
+* In that case you may see warnings during the build process. To eliminate build
+* warnings in your project, you can simply comment out or remove the relevant
+* code in the linker file.
 *
 * <b>ARM GCC</b>\n
 * The flash and RAM sections for the CPU are defined in the linker files:
-* 'xx_yy.ld', where 'xx' is the device group, and 'yy' is the target CPU; for
-* example, 'cy8c6x7_cm0plus.ld' and 'cy8c6x7_cm4_dual.ld'.
-* Note: if the start of the Cortex-M4 application image is changed, the value
+* 'xx_yy.ld', where 'xx' is the device group, and 'yy' is the target CPU; for example, 
+* 'cy8c6xx7_cm0plus.ld' and 'cy8c6xx7_cm4_dual.ld'.
+* \note If the start of the Cortex-M4 application image is changed, the value
 * of the of the \ref CY_CORTEX_M4_APPL_ADDR should also be changed. The
 * \ref CY_CORTEX_M4_APPL_ADDR macro should be used as the parameter for the
 * Cy_SysEnableCM4() function call.
 *
-* The flash and RAM sizes can be changed by editing the LENGTH value in the
+* Change the flash and RAM sizes by editing the macros value in the
 * linker files for both CPUs:
 * - 'xx_cm0plus.ld', where 'xx' is the device group:
-*   * \code rom         (rx)  : ORIGIN = 0x10000000, LENGTH = 0x00080000 \endcode
-*   * \code ram_cm0p    (rwx) : ORIGIN = 0x08000000, LENGTH = 0x00024000 \endcode
+* \code
+* flash       (rx)  : ORIGIN = 0x10000000, LENGTH = 0x00080000
+* ram         (rwx) : ORIGIN = 0x08000000, LENGTH = 0x00024000
+* \endcode
 * - 'xx_cm4_dual.ld', where 'xx' is the device group:
-*   * \code rom         (rx)  : ORIGIN = 0x10080000, LENGTH = 0x00080000 \endcode
-*   * \code ram_cm4     (rwx) : ORIGIN = 0x08024000, LENGTH = 0x00024000 \endcode
+* \code
+* flash       (rx)  : ORIGIN = 0x10080000, LENGTH = 0x00080000
+* ram         (rwx) : ORIGIN = 0x08024000, LENGTH = 0x00023800
+* \endcode
+*
 * Change the value of the \ref CY_CORTEX_M4_APPL_ADDR macro to the rom ORIGIN's
 * value in the 'xx_cm4_dual.ld' file, where 'xx' is the device group. Do this
 * by either:
 * - Passing the following commands to the compiler:\n
-*  * \code -D CY_CORTEX_M4_APPL_ADDR=0x10080000 \endcode
+* \code -D CY_CORTEX_M4_APPL_ADDR=0x10080000 \endcode
 * - Editing the \ref CY_CORTEX_M4_APPL_ADDR value in the 'system_xx.h', where 'xx' is device family:\n
-*  * \code #define CY_CORTEX_M4_APPL_ADDR (0x10080000u) \endcode
+* \code #define CY_CORTEX_M4_APPL_ADDR (0x10080000u) \endcode
 *
 * <b>ARM MDK</b>\n
 * The flash and RAM sections for the CPU are defined in the linker files:
-* 'xx_yy.scat', where 'xx' is the device group, and 'yy' is the target CPU; for
-* example, 'cy8c6x7_cm0plus.scat' and 'cy8c6x7_cm4_dual.scat'.
-* Note: if the start of the Cortex-M4 application image is changed, the value
+* 'xx_yy.scat', where 'xx' is the device group, and 'yy' is the target CPU; for example,
+* 'cy8c6xx7_cm0plus.scat' and 'cy8c6xx7_cm4_dual.scat'.
+* \note If the start of the Cortex-M4 application image is changed, the value
 * of the of the \ref CY_CORTEX_M4_APPL_ADDR should also be changed. The 
 * \ref CY_CORTEX_M4_APPL_ADDR macro should be used as the parameter for the \ref
 * Cy_SysEnableCM4() function call.
 *
-* The flash and RAM sizes can be changed by editing the macros value in the
+* \note The linker files provided with the PDL are generic and handle all common
+* use cases. Your project may not use every section defined in the linker files.
+* In that case you may see the warnings during the build process:
+* L6314W (no section matches pattern) and/or L6329W
+* (pattern only matches removed unused sections). In your project, you can
+* suppress the warning by passing the "--diag_suppress=L6314W,L6329W" option to
+* the linker. You can also comment out or remove the relevant code in the linker
+* file.
+*
+* Change the flash and RAM sizes by editing the macros value in the
 * linker files for both CPUs:
 * - 'xx_cm0plus.scat', where 'xx' is the device group:
-*   * \code #define FLASH_START 0x10000000 \endcode
-*   * \code #define FLASH_SIZE  0x00080000 \endcode
+* \code
+* #define FLASH_START 0x10000000
+* #define FLASH_SIZE  0x00080000
+* #define RAM_START   0x08000000
+* #define RAM_SIZE    0x00024000
+* \endcode
 * - 'xx_cm4_dual.scat', where 'xx' is the device group:
-*   * \code #define FLASH_START 0x10080000 \endcode
-*   * \code #define FLASH_SIZE  0x00080000 \endcode
+* \code
+* #define FLASH_START 0x10080000
+* #define FLASH_SIZE  0x00080000
+* #define RAM_START   0x08024000
+* #define RAM_SIZE    0x00023800
+* \endcode
+*
 * Change the value of the \ref CY_CORTEX_M4_APPL_ADDR macro to the FLASH_START
 * value in the 'xx_cm4_dual.scat' file,
 * where 'xx' is the device group. Do this by either:
 * - Passing the following commands to the compiler:\n
-*  * \code -D CY_CORTEX_M4_APPL_ADDR=0x10080000 \endcode
+* \code -D CY_CORTEX_M4_APPL_ADDR=0x10080000 \endcode
 * - Editing the \ref CY_CORTEX_M4_APPL_ADDR value in the 'system_xx.h', where
 * 'xx' is device family:\n
-*  * \code #define CY_CORTEX_M4_APPL_ADDR          (0x10080000u) \endcode
+* \code #define CY_CORTEX_M4_APPL_ADDR (0x10080000u) \endcode
 *
 * <b>IAR</b>\n
 * The flash and RAM sections for the CPU are defined in the linker files:
-* 'xx_yy.icf', where 'xx' is the device group, and 'yy' is the target CPU; for
-* example, 'cy8c6x7_cm0plus.icf' and 'cy8c6x7_cm4_dual.icf'.
-* Note: if the start of the Cortex-M4 application image is changed, the value
+* 'xx_yy.icf', where 'xx' is the device group, and 'yy' is the target CPU; for example, 
+* 'cy8c6xx7_cm0plus.icf' and 'cy8c6xx7_cm4_dual.icf'.
+* \note If the start of the Cortex-M4 application image is changed, the value
 * of the of the \ref CY_CORTEX_M4_APPL_ADDR should also be changed. The
 * \ref CY_CORTEX_M4_APPL_ADDR macro should be used as the parameter for the \ref
 * Cy_SysEnableCM4() function call.
 *
-* The flash and RAM sizes can be changed by editing the macros value in the
+* Change the flash and RAM sizes by editing the macros value in the
 * linker files for both CPUs:
 * - 'xx_cm0plus.icf', where 'xx' is the device group:
-*   * \code define symbol __ICFEDIT_region_IROM_start__ = 0x10000000; \endcode
-*   * \code define symbol __ICFEDIT_region_IROM_end__ = 0x10080000; \endcode
-*   * \code define symbol __ICFEDIT_region_IRAM_CM0P_start__ = 0x08000000; \endcode
-*   * \code define symbol __ICFEDIT_region_IRAM_CM0P_end__ = 0x08024000; \endcode
+* \code
+* define symbol __ICFEDIT_region_IROM1_start__ = 0x10000000;
+* define symbol __ICFEDIT_region_IROM1_end__   = 0x10080000;
+* define symbol __ICFEDIT_region_IRAM1_start__ = 0x08000000;
+* define symbol __ICFEDIT_region_IRAM1_end__   = 0x08024000;
+* \endcode
 * - 'xx_cm4_dual.icf', where 'xx' is the device group:
-*   * \code define symbol __ICFEDIT_region_IROM_start__ = 0x10080000; \endcode
-*   * \code define symbol __ICFEDIT_region_IROM_end__ = 0x10100000; \endcode
-*   * \code define symbol __ICFEDIT_region_IRAM_CM4_start__ = 0x08024000; \endcode
-*   * \code define symbol __ICFEDIT_region_IRAM_CM4_end__ = 0x08048000; \endcode
+* \code
+* define symbol __ICFEDIT_region_IROM1_start__ = 0x10080000;
+* define symbol __ICFEDIT_region_IROM1_end__   = 0x10100000;
+* define symbol __ICFEDIT_region_IRAM1_start__ = 0x08024000;
+* define symbol __ICFEDIT_region_IRAM1_end__   = 0x08047800;
+* \endcode
+*
 * Change the value of the \ref CY_CORTEX_M4_APPL_ADDR macro to the
-* __ICFEDIT_region_IROM_start__ value in the 'xx_cm4_dual.icf' file, where 'xx'
+* __ICFEDIT_region_IROM1_start__ value in the 'xx_cm4_dual.icf' file, where 'xx'
 * is the device group. Do this by either:
 * - Passing the following commands to the compiler:\n
-*  * \code -D CY_CORTEX_M4_APPL_ADDR=0x10080000 \endcode
+* \code -D CY_CORTEX_M4_APPL_ADDR=0x10080000 \endcode
 * - Editing the \ref CY_CORTEX_M4_APPL_ADDR value in the 'system_xx.h', where
 * 'xx' is device family:\n
-*  * \code #define CY_CORTEX_M4_APPL_ADDR (0x10080000u) \endcode
-*
-* \subsubsection group_system_config_device_memory_single_core_definition Single-Core Devices
-* For single-core devices, 8 KB of flash and RAM are reserved for the pre-build
-* Cortex-M0+ application that is loaded for the hidden Cortex-M0+.
+* \code #define CY_CORTEX_M4_APPL_ADDR (0x10080000u) \endcode
 *
 * \subsection group_system_config_device_initialization Device Initialization
 * After a power-on-reset (POR), the boot process is handled by the boot code
@@ -140,11 +165,14 @@
 * SystemInit() and then calls the main() function. The Cortex-M4 core is disabled
 * by default. Enable the core using the \ref Cy_SysEnableCM4() function.
 * See \ref group_system_config_cm4_functions for more details.
+* \note Startup code executes SystemInit() function for the both Cortex-M0+ and Cortex-M4 cores.
+* The function has a separate implementation on each core.
+* Both function implementations unlock and disable the WDT.
+* Therefore enable the WDT after both cores have been initialized.
 *
 * \subsubsection group_system_config_single_core_device_initialization Single-Core Devices
 * The Cortex-M0+ core is not user-accessible on these devices. In this case the
-* Cortex-M0+ pre-built application image handles setup of the CM0+ core and
-* starts the Cortex-M4 core. 
+* Flash Boot handles setup of the CM0+ core and starts the Cortex-M4 core. 
 *
 * CM0+ NVIC IRQn channels 26-31 are reserved for system use. Other IRQn channels
 * are available to the user application. The pre-built application configures:
@@ -171,13 +199,13 @@
 * 'startup_xx_yy.S', where 'xx' is the device family, and 'yy' is the target CPU;
 * for example, startup_psoc63_cm0plus.s and startup_psoc63_cm4.s.
 * Change the heap and stack sizes by modifying the following lines:\n
-*   * \code .equ  Stack_Size, 0x00001000 \endcode
-*   * \code .equ  Heap_Size,  0x00000400 \endcode
+* \code .equ  Stack_Size, 0x00001000 \endcode
+* \code .equ  Heap_Size,  0x00000400 \endcode
 *
 * - <b>Specifying via command line</b>\n
 * Change the heap and stack sizes passing the following commands to the compiler:\n
-*  * \code -D __STACK_SIZE=0x000000400 \endcode
-*  * \code -D __HEAP_SIZE=0x000000100 \endcode
+* \code -D __STACK_SIZE=0x000000400 \endcode
+* \code -D __HEAP_SIZE=0x000000100 \endcode
 *
 * \subsubsection group_system_config_heap_stack_config_mdk ARM MDK
 * - <b>Editing source code files</b>\n
@@ -185,40 +213,40 @@
 * 'startup_xx_yy.s', where 'xx' is the device family, and 'yy' is the target
 * CPU; for example, startup_psoc63_cm0plus.s and startup_psoc63_cm4.s.
 * Change the heap and stack sizes by modifying the following lines:\n
-*   * \code Stack_Size      EQU     0x00001000 \endcode
-*   * \code Heap_Size       EQU     0x00000400 \endcode
+* \code Stack_Size      EQU     0x00001000 \endcode
+* \code Heap_Size       EQU     0x00000400 \endcode
 *
 * - <b>Specifying via command line</b>\n
 * Change the heap and stack sizes passing the following commands to the assembler:\n
-*  * \code "--predefine=___STACK_SIZE SETA 0x000000400" \endcode
-*  * \code "--predefine=__HEAP_SIZE SETA 0x000000100" \endcode
+* \code "--predefine=___STACK_SIZE SETA 0x000000400" \endcode
+* \code "--predefine=__HEAP_SIZE SETA 0x000000100" \endcode
 *
 * \subsubsection group_system_config_heap_stack_config_iar IAR
 * - <b>Editing source code files</b>\n
 * The heap and stack sizes are defined in the linker scatter files: 'xx_yy.icf',
 * where 'xx' is the device family, and 'yy' is the target CPU; for example,
-* cy8c6x7_cm0plus.icf and cy8c6x7_cm4_dual.icf.
+* cy8c6xx7_cm0plus.icf and cy8c6xx7_cm4_dual.icf.
 * Change the heap and stack sizes by modifying the following lines:\n
-*   * \code Stack_Size      EQU     0x00001000 \endcode
-*   * \code Heap_Size       EQU     0x00000400 \endcode
+* \code Stack_Size      EQU     0x00001000 \endcode
+* \code Heap_Size       EQU     0x00000400 \endcode
 *
 * - <b>Specifying via command line</b>\n
 * Change the heap and stack sizes passing the following commands to the
 * linker (including quotation marks):\n
-*  * \code --define_symbol __STACK_SIZE=0x000000400 \endcode
-*  * \code --define_symbol __HEAP_SIZE=0x000000100 \endcode
+* \code --define_symbol __STACK_SIZE=0x000000400 \endcode
+* \code --define_symbol __HEAP_SIZE=0x000000100 \endcode
 *
-* - \subsection group_system_config_merge_apps Merging CM0+ and CM4 Executables
+* \subsection group_system_config_merge_apps Merging CM0+ and CM4 Executables
 * The CM0+ project and linker script build the CM0+ application image. Similarly,
 * the CM4 linker script builds the CM4 application image. Each specifies
 * locations, sizes, and contents of sections in memory. See
 * \ref group_system_config_device_memory_definition for the symbols and default
 * values.
 *
-* The cypdlelftool is invoked by a post-build command. The precise project
+* The cymcuelftool is invoked by a post-build command. The precise project
 * setting is IDE-specific.
 *
-* The cypdlelftool combines the two executables. The tool examines the
+* The cymcuelftool combines the two executables. The tool examines the
 * executables to ensure that memory regions either do not overlap, or contain
 * identical bytes (shared). If there are no problems, it creates a new ELF file
 * with the merged image, without changing any of the addresses or data.
@@ -228,7 +256,7 @@
 * code actually defines the contents of the vector table and performs the copy.
 * \subsubsection group_system_config_device_vector_table_gcc ARM GCC
 * The linker script file is 'xx_yy.ld', where 'xx' is the device family, and
-* 'yy' is the target CPU; for example, cy8c6x7_cm0plus.ld and cy8c6x7_cm4_dual.ld.
+* 'yy' is the target CPU; for example, cy8c6xx7_cm0plus.ld and cy8c6xx7_cm4_dual.ld.
 * It defines sections and locations in memory.\n
 *       Copy interrupt vectors from flash to RAM: \n
 *       From: \code LONG (__Vectors) \endcode
@@ -241,8 +269,8 @@
 * Flash to RAM.
 * \subsubsection group_system_config_device_vector_table_mdk ARM MDK
 * The linker script file is 'xx_yy.scat', where 'xx' is the device family,
-* and 'yy' is the target CPU; for example, cy8c6x7_cm0plus.scat and
-* cy8c6x7_cm4_dual.scat. The linker script specifies that the vector table
+* and 'yy' is the target CPU; for example, cy8c6xx7_cm0plus.scat and
+* cy8c6xx7_cm4_dual.scat. The linker script specifies that the vector table
 * (RESET_RAM) shall be first in the RAM section.\n
 * RESET_RAM represents the vector table. It is defined in the assembler startup
 * files: 'startup_xx_yy.s', where 'xx' is the device family, and 'yy' is the
@@ -251,7 +279,7 @@
 *
 * \subsubsection group_system_config_device_vector_table_iar IAR
 * The linker script file is 'xx_yy.icf', where 'xx' is the device family, and
-* 'yy' is the target CPU; for example, cy8c6x7_cm0plus.icf and cy8c6x7_cm4_dual.icf.
+* 'yy' is the target CPU; for example, cy8c6xx7_cm0plus.icf and cy8c6xx7_cm4_dual.icf.
 * This file defines the .intvec_ram section and its location.
 * \code place at start of IRAM1_region  { readwrite section .intvec_ram}; \endcode
 * The vector table address (and the vector table itself) are defined in the
@@ -265,17 +293,7 @@
 * more details.
 *
 * \section group_system_config_MISRA MISRA Compliance
-*  The drivers violates the following MISRA-C:2004 rules:
-*
-* <table class="doxtable">
-*   <tr>
-*       <th>MISRA Rule</th>
-*       <th>Rule Class (Required/Advisory)</th>
-*       <th>Rule Description</th>
-*       <th>Description of Deviation(s)</th>
-*   </tr>
-* </table>
-*
+*  The Startup driver does not have any specific deviations.
 *
 * \section group_system_config_changelog Changelog
 *   <table class="doxtable">
@@ -284,6 +302,25 @@
 *       <th>Changes</th>
 *       <th>Reason for Change</th>
 *    </tr>
+*   <tr>
+*     <td rowspan="4"> 2.0</td>
+*     <td>Added restoring of FLL registers to the default state in SystemInit() API for single core devices.</td>
+*     <td>Single core device support.</td>
+*   </tr>
+*   <tr>
+*     <td>Added Normal Access Restrictions, Public Key, TOC part2 and TOC part2 copy to Supervisory flash linker memory regions. \n
+*         Renamed 'wflash' memory region to 'em_eeprom'.
+*     </td>
+*     <td>Linker scripts usability improvement.</td>
+*   </tr>
+*   <tr>
+*     <td>Added Cy_IPC_SystemSemaInit(), Cy_IPC_SystemPipeInit(), Cy_Flash_Init() functions call to SystemInit() API.</td>
+*     <td>Reserved system resources for internal operations.</td>
+*   </tr>
+*   <tr>
+*     <td>Added clearing and releasing of IPC structure #7 (reserved for the Deep-Sleep operations) to SystemInit() API.</td>
+*     <td>To avoid deadlocks in case of SW or WDT reset during Deep-Sleep entering.</td>
+*   </tr>
 *   <tr>
 *       <td>1.0</td>
 *       <td>Initial version</td>

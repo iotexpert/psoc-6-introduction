@@ -66,11 +66,14 @@
 * weakly linked. You can write your own implementation of any of those
 * functions, and not use stdio_user.c at all, if you prefer.
 *
-* \note If you are using the GCC compiler, you should identify a buffering
-*       strategy and a buffer size for a specified stream. If you
-*       supply a buffer, it must exist until the stream is
-*       closed. For example, here is how to disable the input
-*       buffer:
+* \note The standard library is not standard in how it treats an I/O stream. 
+*       Some implement a data buffer by default. The buffer is not flushed until 
+*       it is full. In that case it may appear that your I/O is not working. You 
+*       should be aware of how the library buffers data, and you should identify 
+*       a buffering strategy and buffer size for a specified stream. If you 
+*       supply a buffer, it must exist until the stream is closed. The following 
+*       line of code disables the buffer for the standard library that 
+*       accompanies the GCC compiler: 
 *       \code setvbuf( stdin, NULL, _IONBF, 0 ); \endcode
 *
 *
@@ -127,8 +130,8 @@
 * </table>
 * \}
 */
-#include <project.h>
 #include "cy_device_headers.h"
+    #include "project.h"
 
 /* Must remain uncommented to use this utility */
 #define IO_STDOUT_ENABLE

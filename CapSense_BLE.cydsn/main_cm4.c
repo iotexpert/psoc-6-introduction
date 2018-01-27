@@ -7,22 +7,28 @@
 
 QueueHandle_t pwmQueueHandle;
 QueueHandle_t bleQueueHandle;
-int connected=0;
-int notify=0;
+
 
 // This function is run inside BLE Task and sends notification if you are connected and notifications are on
 void notifyCapSense(uint8_t capValue)
 {    
-    if(!(connected && notify))
-        return;
+   
+    unsigned int index;
     
-    cy_stc_ble_gatts_handle_value_ntf_t v1;
-    v1.connHandle = cy_ble_connHandle[0];
-    v1.handleValPair.attrHandle = CY_BLE_CAPSENSE_CAPSLIDER_CHAR_HANDLE;
-    v1.handleValPair.value.len = 1;
-    v1.handleValPair.value.val = &capValue;
+    printf("Sending CapSense %d\r\n",capValue);
+   
+    cy_stc_ble_gatt_handle_value_pair_t handleValuePair;
+    handleValuePair.attrHandle = CY_BLE_CAPSENSE_CAPSLIDER_CHAR_HANDLE;
+    handleValuePair.value.val = &capValue;
+    handleValuePair.value.len = 1;
     
-    Cy_BLE_GATTS_Notification(&v1);
+    Cy_BLE_GATTS_WriteAttributeValueLocal(&handleValuePair);
+   
+    /* Iterate and send notiication to all the connected devices that are ready to receive notification */
+    for(index = 0; index <CY_BLE_CONN_COUNT; index++)
+    {     
+        Cy_BLE_GATTS_SendNotification(&cy_ble_connHandle[index], &handleValuePair);
+    }
         
 }
 
@@ -36,23 +42,23 @@ void customEventHandler(uint32_t event, void *eventParameter)
         case CY_BLE_EVT_STACK_ON:
         case CY_BLE_EVT_GAP_DEVICE_DISCONNECTED: // Central disconnects
             Cy_BLE_GAPP_StartAdvertisement(CY_BLE_ADVERTISING_FAST,CY_BLE_PERIPHERAL_CONFIGURATION_0_INDEX);
-            connected = 0;
-            notify=0;
+            printf("Started advertising\r\n");
         break;
 
         case CY_BLE_EVT_GATT_CONNECT_IND: // A Central connection is made
-            connected = 1;
         break;
         
         case CY_BLE_EVT_GATTS_WRITE_REQ:
             writeReqParameter = (cy_stc_ble_gatts_write_cmd_req_param_t *)eventParameter;
 
             if(CY_BLE_CAPSENSE_CAPSLIDER_CLIENT_CHARACTERISTIC_CONFIGURATION_DESC_HANDLE ==  writeReqParameter->handleValPair.attrHandle)
-                notify = writeReqParameter->handleValPair.value.val[0];
-              
+            {
+                Cy_BLE_GATTS_WriteAttributeValuePeer(&writeReqParameter->connHandle,&writeReqParameter->handleValPair);
+            }
             Cy_BLE_GATTS_WriteRsp(writeReqParameter->connHandle);
         break;
-
+            
+       
         default: // Ignore all other events
         break;
     }

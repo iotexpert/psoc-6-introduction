@@ -35,8 +35,7 @@ extern "C" {
 *******************************************************************************/
 void STDIO_PutChar(uint32_t ch)
 {
-    /* Place here call to your function. The example below is for SCB0 block,
-    that can perform redirecting standard output via serial interface */
+    /* Place the call to your function here. */
     while(0U == Cy_SCB_UART_Put(IO_STDOUT_UART, ch))
     {
         /* Wait until FIFO is full */
@@ -49,7 +48,7 @@ void STDIO_PutChar(uint32_t ch)
 * Function Name: STDIO_GetChar
 ********************************************************************************
 *
-* This function retrieve STDIN from a user specified input source.
+* This function retrieves STDIN from a user specified input source.
 * Note: this is a template function which may be overwritten by the USER in order
 * to change the target used in redirecting STDIN stream.
 *
@@ -59,9 +58,7 @@ void STDIO_PutChar(uint32_t ch)
 *******************************************************************************/
 uint32_t STDIO_GetChar(void)
 {
-    /* Place here call to your function. The example below is for SCB0 block,
-    that can perform redirecting input from serial interface to standard input
-    stream */
+    /* Place the call to your function here. */
     while(0UL == Cy_SCB_UART_GetNumInRxFifo(IO_STDIN_UART))
     {
     }

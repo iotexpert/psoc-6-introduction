@@ -62,7 +62,7 @@ __vector_table
         DCD     sfe(CSTACK)
         DCD     Reset_Handler
 
-        DCD     0x0000000D      ; MI_Handler is defined in ROM code
+        DCD     0x0000000D      ; NMI_Handler is defined in ROM code
         DCD     HardFault_Handler
         DCD     0
         DCD     0

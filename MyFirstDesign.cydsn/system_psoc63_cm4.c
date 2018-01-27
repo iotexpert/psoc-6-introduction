@@ -17,6 +17,11 @@
 #include "system_psoc63.h"
 #include "cy_device_headers.h"
 
+#if defined(CY_DEVICE_PSOC6ABLE2) && !defined(CY_IPC_DEFAULT_CFG_DISABLE)
+    #include "ipc/cy_ipc_drv.h"
+    #include "flash/cy_flash.h"
+#endif /* defined(CY_DEVICE_PSOC6ABLE2) && !defined(CY_IPC_DEFAULT_CFG_DISABLE) */
+
 
 /*******************************************************************************
 * SystemCoreClockUpdate()
@@ -83,6 +88,14 @@ uint32_t cy_PeriClkFreqHz = CY_CLK_PERICLK_FREQ_HZ_DEFAULT;
 #define CY_WDT_LOCK_BIT0                ((uint32_t)0x01u << 30u)
 #define CY_WDT_LOCK_BIT1                ((uint32_t)0x01u << 31u)
 
+#if (__CM0P_PRESENT == 0)
+    /* CLK_FLL_CONFIG default values */
+    #define CY_FB_CLK_FLL_CONFIG_VALUE      (0x01000000u)
+    #define CY_FB_CLK_FLL_CONFIG2_VALUE     (0x00020001u)
+    #define CY_FB_CLK_FLL_CONFIG3_VALUE     (0x00002800u)
+    #define CY_FB_CLK_FLL_CONFIG4_VALUE     (0x000000FFu)
+#endif /* (__CM0P_PRESENT == 0) */
+
 
 /*******************************************************************************
 * SystemCoreClockUpdate (void)
@@ -128,13 +141,31 @@ uint32_t cy_delay32kMs    = CY_DELAY_MS_OVERFLOW_THRESHOLD *
 ****************************************************************************//**
 *
 * Initializes the system:
-* - Unlocks and disables WDT.
-* - Calls the Cy_SystemInit() function, if compiled from PSoC Creator.
-* - Calls \ref SystemCoreClockUpdate().
+* - Cortex-M4 core:
+* -# Restores FLL registers to the default state for single core devices.
+* -# Unlocks and disables WDT.
+* -# Calls the Cy_SystemInit() function, if compiled from PSoC Creator.
+* -# Calls \ref SystemCoreClockUpdate().
 *
 *******************************************************************************/
 void SystemInit(void)
 {
+#if (__CM0P_PRESENT == 0)
+    /* Restore FLL registers to the default state as they are not restored by the ROM code */
+    uint32_t copy = SRSS->CLK_FLL_CONFIG;
+    copy &= ~SRSS_CLK_FLL_CONFIG_FLL_ENABLE_Msk;
+    SRSS->CLK_FLL_CONFIG = copy;
+
+    copy = SRSS->CLK_ROOT_SELECT[0u];
+    copy &= ~SRSS_CLK_ROOT_SELECT_ROOT_DIV_Msk; /* Set ROOT_DIV = 0*/
+    SRSS->CLK_ROOT_SELECT[0u] = copy;
+
+    SRSS->CLK_FLL_CONFIG  = CY_FB_CLK_FLL_CONFIG_VALUE;
+    SRSS->CLK_FLL_CONFIG2 = CY_FB_CLK_FLL_CONFIG2_VALUE;
+    SRSS->CLK_FLL_CONFIG3 = CY_FB_CLK_FLL_CONFIG3_VALUE;
+    SRSS->CLK_FLL_CONFIG4 = CY_FB_CLK_FLL_CONFIG4_VALUE;
+#endif /* (__CM0P_PRESENT == 0) */
+
     /* Unlock and disable WDT */
     SRSS->WDT_CTL = ((SRSS->WDT_CTL & (uint32_t)(~SRSS_WDT_CTL_WDT_LOCK_Msk)) | CY_WDT_LOCK_BIT0);
     SRSS->WDT_CTL = (SRSS->WDT_CTL | CY_WDT_LOCK_BIT1);
@@ -142,6 +173,13 @@ void SystemInit(void)
 
     Cy_SystemInit();
     SystemCoreClockUpdate();
+
+#if defined(CY_DEVICE_PSOC6ABLE2) && !defined(CY_IPC_DEFAULT_CFG_DISABLE)
+    /* Allocate and initialize semaphores for the system operations. */
+    Cy_IPC_SystemSemaInit();
+    Cy_IPC_SystemPipeInit();
+    Cy_Flash_Init();
+#endif /* defined(CY_DEVICE_PSOC6ABLE2) && !defined(CY_IPC_DEFAULT_CFG_DISABLE) */
 }
 
 
@@ -357,7 +395,7 @@ void Cy_SystemInitFpuEnable(void)
 *
 * The intention of the function is to declare boundaries of the memories for the
 * MDK compilers. For the rest of the supported compilers, this is done using
-* linker configuration files. The following symbols used by the cypdlelftool.
+* linker configuration files. The following symbols used by the cymcuelftool.
 *
 *******************************************************************************/
 #if defined (__ARMCC_VERSION)
@@ -393,9 +431,9 @@ __cy_memory_0_start     EQU __cpp(CY_FLASH_BASE)
 __cy_memory_0_length    EQU __cpp(CY_FLASH_SIZE)
 __cy_memory_0_row_size  EQU 0x200
 
-    /* Working Flash */
-__cy_memory_1_start     EQU __cpp(CY_WFLASH_BASE)
-__cy_memory_1_length    EQU __cpp(CY_WFLASH_SIZE)
+    /* Flash region for EEPROM emulation */
+__cy_memory_1_start     EQU __cpp(CY_EM_EEPROM_BASE)
+__cy_memory_1_length    EQU __cpp(CY_EM_EEPROM_SIZE)
 __cy_memory_1_row_size  EQU 0x200
 
     /* Supervisory Flash */

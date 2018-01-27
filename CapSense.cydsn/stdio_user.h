@@ -48,29 +48,32 @@
 * added to your project and are available for modification.
 * ![Figure 1. Build Settings dialog in PSoC Creator](retarget_io_build_settings.png)
 *
-* After you have added the source files, there are two ways you can use
-* this utility:
-* 1. Modify the code in stdio_user.c
-* 2. Override the weakly linked functions in retarget.c
+* There are multiple serial communication blocks (SCB) available. By default
+* the Retarget I/O files use SCB0. The stdio_user.h file defines these macros:
+* \code #define IO_STDOUT_UART      SCB0 
+*  #define IO_STDIN_UART       SCB0  \endcode
 *
-* When your project is configured, change the code in stdio_user.c to use the
-* specific serial communication block in your design. For example,
-* STDIO_PutChar has this line of code:
-* \code while(0U == Cy_SCB_UART_Put(IO_STDOUT_UART, ch)) \endcode
+* Modify these macros to use the SCB in your design. Standard library I/O
+* calls are then retargeted to that SCB. 
 *
-* The parameter IO_STDOUT_UART refers to a particular serial communication
-* block, and is defined in the stdio_user.h file. Modify that macro to use
-* the actual SCB in your design.
+* If you use PSoC Creator, the code generator creates a symbol UART_HW 
+* to represent the SCB block used in your design. In this case you can 
+* include "project.h" to access that symbol, and modify the macros like this:
+* \code #define IO_STDOUT_UART      UART_HW
+*  #define IO_STDIN_UART       UART_HW \endcode
 *
-* For the second option, note that functions implemented in retarget.c are
-* weakly linked. You can write your own implementation of any of those
-* functions, and not use stdio_user.c at all, if you prefer.
+* The functions implemented in retarget.c are weakly linked. If you wish
+* to modify those functions, you can write your own implementation, and 
+* not use stdio_user.c at all.
 *
-* \note If you are using the GCC compiler, you should identify a buffering
-*       strategy and a buffer size for a specified stream. If you
-*       supply a buffer, it must exist until the stream is
-*       closed. For example, here is how to disable the input
-*       buffer:
+* \note The standard library is not standard in how it treats an I/O stream. 
+*       Some implement a data buffer by default. The buffer is not flushed until 
+*       it is full. In that case it may appear that your I/O is not working. You 
+*       should be aware of how the library buffers data, and you should identify 
+*       a buffering strategy and buffer size for a specified stream. If you 
+*       supply a buffer, it must exist until the stream is closed. The following 
+*       line of code disables the buffer for the standard library that 
+*       accompanies the GCC compiler: 
 *       \code setvbuf( stdin, NULL, _IONBF, 0 ); \endcode
 *
 *
@@ -125,11 +128,26 @@
 *         definition with their declaration in the standard library.</td>
 *   </tr>
 * </table>
+*
+* <h1>Changelog</h1>
+*
+* <table class="doxtable">
+* <tr><th>Version</th><th>Changes</th><th>Reason for Change</th></tr>
+* <tr>
+* <td>1.10</td>
+* <td>Added STDIN support</td> 
+* <td></td>
+* </tr>
+* <tr>
+* <td>1.0</td>
+* <td>Initial version</td>
+* <td></td>
+* </tr>
+* </table>
 * \}
 */
-#include <project.h>
 #include "cy_device_headers.h"
-
+#include "project.h"
 /* Must remain uncommented to use this utility */
 #define IO_STDOUT_ENABLE
 #define IO_STDIN_ENABLE

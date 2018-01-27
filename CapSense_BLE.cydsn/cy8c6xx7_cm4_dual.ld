@@ -4,6 +4,10 @@
 *
 * Linker file for the GNU C compiler.
 *
+* The main purpose of the linker script is to describe how the sections in the
+* input files should be mapped into the output file, and to control the memory
+* layout of the output file.
+*
 * \note The entry point location is fixed and starts at 0x10000000. The valid
 * application image should be placed there.
 *
@@ -35,21 +39,37 @@ ENTRY(Reset_Handler)
 */
 EXTERN(Reset_Handler)
 
-
-/* Linker script to configure memory regions. */
+/* The MEMORY section below describes the location and size of blocks of memory in the target.
+* Use this section to specify the memory regions available for allocation.
+*/
 MEMORY
 {
-    flash             (rx)    : ORIGIN = 0x10080000, LENGTH = 0x80000
-    wflash            (rx)    : ORIGIN = 0x14000000, LENGTH = 0x8000          /*  32 KB */
-    sflash_user_data  (rx)    : ORIGIN = 0x16000800, LENGTH = 0x800
-    sflash_nar        (rx)    : ORIGIN = 0x16001A00, LENGTH = 0x200
-    sflash_public_key (rx)    : ORIGIN = 0x16005A00, LENGTH = 0xC00
-    sflash_toc_2      (rx)    : ORIGIN = 0x16007C00, LENGTH = 0x400
-    xip               (rx)    : ORIGIN = 0x18000000, LENGTH = 0x8000000       /* 128 MB */
-    efuse             (r)     : ORIGIN = 0x90700000, LENGTH = 0x100000        /*   1 MB */
+    /* The ram and flash regions control RAM and flash memory allocation for the CM4 core.
+     * You can change the memory allocation by editing the 'ram' and 'flash' regions.
+     * Note that 2 KB of RAM (at the end of the RAM section) are reserved for system use.
+     * Using this memory region for other purposes will lead to unexpected behavior.
+     * Your changes must be aligned with the corresponding memory regions for CM0+ core in 'xx_cm0plus.ld',
+     * where 'xx' is the device group; for example, 'cy8c6xx7_cm0plus.ld'.
+     */
     ram               (rwx)   : ORIGIN = 0x08024000, LENGTH = 0x23800
-}
+    flash             (rx)    : ORIGIN = 0x10080000, LENGTH = 0x80000
 
+    /* This is a 32K flash region used for EEPROM emulation. This region can also be used as the general purpose flash.
+     * You can assign sections to this memory region for only one of the cores.
+     * Note some middleware (e.g. BLE, Emulated EEPROM) can place their data into this memory region.
+     * Therefore, repurposing this memory region will prevent such middleware from operation.
+     */
+    em_eeprom         (rx)    : ORIGIN = 0x14000000, LENGTH = 0x8000       /*  32 KB */
+
+    /* The following regions define device specific memory regions and must not be changed. */
+    sflash_user_data  (rx)    : ORIGIN = 0x16000800, LENGTH = 0x800        /* Supervisory flash: User data */
+    sflash_nar        (rx)    : ORIGIN = 0x16001A00, LENGTH = 0x200        /* Supervisory flash: Normal Access Restrictions (NAR) */
+    sflash_public_key (rx)    : ORIGIN = 0x16005A00, LENGTH = 0xC00        /* Supervisory flash: Public Key */
+    sflash_toc_2      (rx)    : ORIGIN = 0x16007C00, LENGTH = 0x200        /* Supervisory flash: Table of Content # 2 */
+    sflash_rtoc_2     (rx)    : ORIGIN = 0x16007E00, LENGTH = 0x200        /* Supervisory flash: Table of Content # 2 Copy */
+    xip               (rx)    : ORIGIN = 0x18000000, LENGTH = 0x8000000    /* 128 MB */
+    efuse             (r)     : ORIGIN = 0x90700000, LENGTH = 0x100000     /*   1 MB */
+}
 
 /* Library configurations */
 GROUP(libgcc.a libc.a libm.a libnosys.a)
@@ -217,6 +237,9 @@ SECTIONS
         KEEP(*(.jcr*))
         . = ALIGN(4);
 
+        KEEP(*(.cy_ramfunc*))
+        . = ALIGN(4);
+
         __data_end__ = .;
 
     } > ram
@@ -291,11 +314,11 @@ SECTIONS
     } > flash
 
 
-    /* Work Flash */
-    .cy_wflash :
+    /* Emulated EEPROM Flash area */
+    .cy_em_eeprom :
     {
-        KEEP(*(.cy_wflash))
-    } > wflash
+        KEEP(*(.cy_em_eeprom))
+    } > em_eeprom
 
 
     /* Supervisory Flash: User data */
@@ -325,6 +348,13 @@ SECTIONS
         KEEP(*(.cy_toc_part2))
     } > sflash_toc_2
 
+    
+    /* Supervisory Flash: Table of Content # 2 Copy */
+    .cy_rtoc_part2 :
+    {
+        KEEP(*(.cy_rtoc_part2))
+    } > sflash_rtoc_2
+
 
     /* Places the code in the Execute in Place (XIP) section. See the smif driver
     *  documentation for details.
@@ -349,13 +379,13 @@ SECTIONS
 }
 
 
-/* The following symbols used by the cypdlelftool. */
+/* The following symbols used by the cymcuelftool. */
 /* Flash */
 __cy_memory_0_start    = 0x10000000;
 __cy_memory_0_length   = 0x00100000;
 __cy_memory_0_row_size = 0x200;
 
-/* Working Flash */
+/* Emulated EEPROM Flash area */
 __cy_memory_1_start    = 0x14000000;
 __cy_memory_1_length   = 0x8000;
 __cy_memory_1_row_size = 0x200;
